@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JSON Copier</title>
+
+  <style>
+    :root{
+      --bg1:#f7f8ff;
+      --bg2:#eef3ff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --border:rgba(15,23,42,.12);
+      --shadow: 0 10px 25px rgba(2,6,23,.10);
+      --gap:10px;
+    }
+
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, var(--bg2), transparent 55%),
+                  radial-gradient(900px 500px at 90% 0%, #fef3ff, transparent 50%),
+                  linear-gradient(180deg, var(--bg1), #ffffff);
+      min-height: 100vh;
+    }
+
+    .wrap{
+      max-width:560px;
+      margin:0 auto;
+      padding:12px 12px 140px;
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 4px 12px;
+    }
+    .header h1{
+      font-size:16px;
+      margin:0;
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    .header .meta{
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+      font-weight:700;
+      text-align:right;
+      line-height:1.2;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--gap);
+    }
+
+    /* ✅ UPDATED BUTTON COLORS (premium + vibrant) */
+    .btn{
+      position: relative;
+      width: 100%;
+      border-radius: 18px;
+      padding: 13px 11px 11px;
+      text-align: left;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow: hidden;
+
+      border: 1px solid hsla(var(--h), 85%, 40%, .28);
+      background:
+        radial-gradient(160px 160px at 18% 14%, rgba(255, 200, 90, .33), transparent 62%),
+        radial-gradient(170px 170px at 90% 6%, hsla(var(--h), 95%, 65%, .22), transparent 62%),
+        linear-gradient(135deg,
+          #ffffff 0%,
+          hsla(var(--h), 95%, 93%, 1) 42%,
+          hsla(calc(var(--h) + 40), 95%, 90%, 1) 100%
+        );
+
+      box-shadow:
+        0 18px 34px rgba(2,6,23,.12),
+        inset 0 1px 0 rgba(255,255,255,.92);
+
+      transition: transform .10s ease, box-shadow .15s ease, border-color .15s ease, filter .15s ease;
+    }
+
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:auto -48px -62px auto;
+      width:190px;
+      height:190px;
+      background: radial-gradient(circle at 30% 30%, hsla(var(--h), 95%, 55%, .28), transparent 62%);
+      transform: rotate(18deg);
+      pointer-events:none;
+    }
+
+    .btn:active{
+      transform: translateY(1px) scale(.985);
+      border-color: hsla(var(--h), 80%, 45%, .55);
+      box-shadow:
+        0 12px 22px rgba(2,6,23,.12),
+        inset 0 1px 0 rgba(255,255,255,.92);
+      filter: saturate(1.08);
+    }
+
+    .btn-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      margin-bottom:6px;
+      position:relative;
+      z-index:1;
+    }
+
+    .btn-title{
+      font-weight: 950;
+      font-size: 13px;
+      letter-spacing: .2px;
+      background: linear-gradient(90deg,
+        hsl(var(--h), 92%, 30%),
+        hsl(calc(var(--h) + 40), 92%, 32%)
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .copy-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 9px;
+      border-radius:999px;
+      border:1px solid rgba(15,23,42,.10);
+      background: rgba(255,255,255,.85);
+      box-shadow: 0 6px 14px rgba(2,6,23,.08);
+      font-size:11px;
+      font-weight:900;
+      color: rgba(15,23,42,.85);
+      transition: transform .10s ease, background .15s ease, color .15s ease, border-color .15s ease;
+    }
+    .copy-badge span{ font-size:12px; line-height:1; }
+
+    .btn-sub{
+      font-size: 10.5px;
+      color: var(--muted);
+      font-weight: 750;
+      position:relative;
+      z-index:1;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .btn.copied{
+      border-color: hsla(var(--h), 95%, 40%, .70);
+      filter: saturate(1.15);
+      box-shadow:
+        0 20px 38px rgba(2,6,23,.14),
+        0 0 0 3px hsla(var(--h), 95%, 55%, .12),
+        inset 0 1px 0 rgba(255,255,255,.92);
+    }
+
+    .btn.copied .copy-badge{
+      background: hsla(var(--h), 95%, 55%, .16);
+      border-color: hsla(var(--h), 95%, 45%, .35);
+      color: hsl(var(--h), 85%, 24%);
+      transform: scale(1.04);
+    }
+
+    .pager{
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 9999;
+
+      background: linear-gradient(90deg, #111827, #1f2937);
+      border-top: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 -12px 30px rgba(2,6,23,.22);
+
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    }
+
+    .pager-inner{
+      max-width:560px;
+      margin:0 auto;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap: nowrap;
+    }
+
+    .pageinfo{
+      flex:1;
+      text-align:center;
+      font-size:12px;
+      color: rgba(255,255,255,.85);
+      font-weight:900;
+      min-width: 110px;
+    }
+
+    .navbtn{
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 10px 25px rgba(0,0,0,.18);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight: 900;
+      font-size: 12px;
+      color: #0f172a;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease;
+      white-space: nowrap;
+    }
+    .navbtn:active{ transform: scale(.985); }
+    .navbtn:disabled{ opacity:.45; cursor:not-allowed; }
+
+    .jump{
+      width:74px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:14px;
+      padding:10px 10px;
+      font-weight:900;
+      font-size:12px;
+      outline:none;
+      background: rgba(255,255,255,.95);
+      text-align:center;
+      box-shadow: 0 10px 25px rgba(0,0,0,.18);
+    }
+
+    .gobtn{
+      border: 1px solid rgba(255,255,255,.18);
+      background: linear-gradient(180deg, #ffffff, #eef2ff);
+      box-shadow: 0 10px 25px rgba(0,0,0,.18);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-weight: 950;
+      font-size: 12px;
+      color: #0f172a;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .08s ease;
+      white-space: nowrap;
+    }
+    .gobtn:active{ transform: scale(.985); }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:86px;
+      transform: translateX(-50%);
+      background: rgba(15,23,42,.92);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.12);
+      padding:10px 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      opacity:0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+      z-index: 10000;
+    }
+    .toast.show{ opacity:1; }
+
+    .state{
+      margin-top:16px;
+      background: #ffffff;
+      border:1px solid var(--border);
+      border-radius: 16px;
+      padding:12px;
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 13px;
+      line-height:1.45;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1>JSON Copier</h1>
+      </div>
+      <div class="meta" id="meta">Loading…</div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+    <div id="state" class="state" style="display:none;"></div>
+  </div>
+
+  <div class="pager">
+    <div class="pager-inner">
+      <button class="navbtn" id="prevBtn">Prev</button>
+      <div class="pageinfo" id="pageInfo">Page 1 / 1</div>
+      <button class="navbtn" id="nextBtn">Next</button>
+
+      <input class="jump" id="jumpInput" type="number" min="1" inputmode="numeric" placeholder="Page" />
+      <button class="gobtn" id="goBtn">Go</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">Copied!</div>
+
+  <script>
+    window.addEventListener("error", (e) => {
+      document.body.innerHTML = `<pre style="padding:16px;font-size:14px;white-space:pre-wrap">
+JS Error: ${e.message}
+</pre>`;
+    });
+
+    const PAGE_SIZE = 100;
+
+    const grid = document.getElementById("grid");
+    const toast = document.getElementById("toast");
+    const meta = document.getElementById("meta");
+    const stateBox = document.getElementById("state");
+
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const pageInfo = document.getElementById("pageInfo");
+    const jumpInput = document.getElementById("jumpInput");
+    const goBtn = document.getElementById("goBtn");
+
+    let items = [];
+    let page = 1;
+    let totalPages = 1;
+
+    function showToast(text){
+      toast.textContent = text;
+      toast.classList.add("show");
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove("show"), 950);
+    }
+
+    async function copyText(text){
+      try{
+        await navigator.clipboard.writeText(text);
+        return true;
+      }catch(e){
+        try{
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          const ok = document.execCommand("copy");
+          document.body.removeChild(ta);
+          return ok;
+        }catch(_){
+          return false;
+        }
+      }
+    }
+
+    function flattenSheets(raw){
+      if (Array.isArray(raw)) return raw;
+      const out = [];
+      if (raw && typeof raw === "object"){
+        for (const [sheetName, rows] of Object.entries(raw)){
+          if (Array.isArray(rows)){
+            for (const r of rows){
+              if (r && typeof r === "object"){
+                out.push({ ...r, _sheet: sheetName });
+              }
+            }
+          }
+        }
+      }
+      return out;
+    }
+
+    function normalizeData(raw){
+      let arr = flattenSheets(raw);
+
+      arr = arr
+        .filter(x => x && typeof x === "object")
+        .map((x, idx) => {
+          const no = (x.no ?? (idx + 1));
+          return { ...x, no };
+        });
+
+      arr.sort((a,b) => {
+        const an = Number(a.no), bn = Number(b.no);
+        if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+        return String(a.no).localeCompare(String(b.no));
+      });
+
+      return arr;
+    }
+
+    function withoutImagePrompt(obj){
+      const out = {};
+      for (const [k, v] of Object.entries(obj)){
+        if (k === "image_prompt") continue;
+        out[k] = v;
+      }
+      return out;
+    }
+
+    function render(){
+      totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+      page = Math.min(totalPages, Math.max(1, page));
+
+      const start = (page - 1) * PAGE_SIZE;
+      const end = start + PAGE_SIZE;
+      const slice = items.slice(start, end);
+
+      meta.textContent = `${items.length} rows • ${PAGE_SIZE}/page`;
+
+      pageInfo.textContent = `Page ${page} / ${totalPages}`;
+      prevBtn.disabled = (page === 1);
+      nextBtn.disabled = (page === totalPages);
+
+      grid.innerHTML = "";
+      const frag = document.createDocumentFragment();
+
+      slice.forEach((item, localIdx) => {
+        const idx = start + localIdx;
+        const no = item.no;
+
+        const title = (item.title || item.brief_description || "").toString().trim();
+        const hint = title ? title.slice(0, 36).trim() : "Click to copy JSON";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn";
+        btn.dataset.idx = String(idx);
+
+        btn.style.setProperty("--h", String((Number(no) * 37) % 360));
+
+        btn.innerHTML = `
+          <div class="btn-top">
+            <div class="btn-title">JSON ${no}</div>
+            <div class="copy-badge"><span>⧉</span> Copy</div>
+          </div>
+          <div class="btn-sub">${hint}${title ? "…" : ""}</div>
+        `;
+
+        frag.appendChild(btn);
+      });
+
+      grid.appendChild(frag);
+    }
+
+    grid.addEventListener("click", async (e) => {
+      const btn = e.target.closest(".btn");
+      if (!btn) return;
+
+      const idx = Number(btn.dataset.idx);
+      if (!Number.isFinite(idx) || !items[idx]) {
+        showToast("Invalid item");
+        return;
+      }
+
+      const badge = btn.querySelector(".copy-badge");
+      const oldBadgeHTML = badge ? badge.innerHTML : null;
+
+      const clean = withoutImagePrompt(items[idx]);
+      const textToCopy = JSON.stringify(clean, null, 2);
+
+      const ok = await copyText(textToCopy);
+
+      if (ok) {
+        btn.classList.add("copied");
+        if (badge) badge.innerHTML = `<span>✓</span> Copied`;
+        showToast(`Copied JSON ${items[idx].no}`);
+
+        clearTimeout(btn._copiedTimer);
+        btn._copiedTimer = setTimeout(() => {
+          btn.classList.remove("copied");
+          if (badge && oldBadgeHTML) badge.innerHTML = oldBadgeHTML;
+        }, 900);
+      } else {
+        showToast("Copy failed");
+      }
+    });
+
+    prevBtn.addEventListener("click", () => { page--; render(); });
+    nextBtn.addEventListener("click", () => { page++; render(); });
+
+    function goToPage(){
+      const val = Number(jumpInput.value);
+      if (!val) return showToast("Enter page number");
+      page = Math.min(totalPages, Math.max(1, val));
+      jumpInput.value = "";
+      jumpInput.blur();
+      render();
+      showToast(`Page ${page}`);
+    }
+
+    jumpInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") goToPage();
+    });
+    goBtn.addEventListener("click", goToPage);
+
+    async function init(){
+      try{
+        stateBox.style.display = "block";
+        stateBox.textContent =
+          "Loading all-god-content.json ...\n\n" +
+          "Keep JSON + index.html in same folder.\n" +
+          "Open using http://localhost (not file://)\n";
+
+        const res = await fetch("./all-god-content.json", { cache: "no-store" });
+        if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${res.statusText}`);
+
+        const raw = await res.json();
+        items = normalizeData(raw);
+
+        stateBox.style.display = "none";
+        render();
+      } catch (err) {
+        stateBox.style.display = "block";
+        stateBox.textContent =
+          "Error loading JSON.\n\n" +
+          "Fix:\n" +
+          "1) JSON name: all-god-content.json\n" +
+          "2) Same folder as index.html\n" +
+          "3) Run: py -m http.server 8000\n" +
+          "4) Open: http://localhost:8000/index.html\n\n" +
+          "Details: " + (err && err.message ? err.message : String(err));
+        meta.textContent = "Load failed";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
